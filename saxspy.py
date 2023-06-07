@@ -1,3 +1,4 @@
+from itertools import product
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -268,13 +269,26 @@ class CubicModel():
             # must be divided by 2 in order to obey the reflection condition
             x, y, z = np.pi*np.mgrid[-1:1:steps*1j, -1:1:steps*1j, -1:1:steps*1j] * 1
             vol = gyroid(x,y,z)
+
+            level = 0.5  # Threshold value
+            spacing = (0.1, 0.1, 0.1)  # Spacing or resolution of the volume
+            gradient_direction = 'ascent'  # Gradient direction for normal vectors
+            step_size = 1  # Step size for sampling/traversal
+            allow_degenerate = False  # Flag to allow degenerate triangles
+            use_classic = True  # Flag to use the classic Marching Cubes algorithm
+            mask = None  # Optional mask (None indicates no mask)
+            
         # convert 3D volume to triangulated surface
-        verts, faces, normals, values = measure.marching_cubes_lewiner(vol, 0, spacing=(0.1, 0.1, 0.1))
+        verts, faces, normals, values = measure._marching_cubes_lewiner._marching_cubes_lewiner(vol, level, spacing,
+                                                                gradient_direction, step_size,
+                                                                allow_degenerate, use_classic,
+                                                                mask)
         # scale vertices by lattice parameter
         verts = verts/np.max(verts)*lat_param
 
         return verts, faces, normals, values
-
+    
+    
     def garsteckiIntensity(self, verts, faces, k_list, lat_param):
         """
         simple model (J. Chem. Phys. Vol 113, No. 9, Garstecki 2000)
@@ -307,7 +321,7 @@ class CubicModel():
             q.append(qk)
             #print(k,np.sum(Ikc)**2)
         return np.array(q), np.array(I)
-
+    
     def getIntensity(self, verts, faces, k_list, lat_param, L, sigma):
         """
         Modified model:
@@ -321,45 +335,95 @@ class CubicModel():
             q - scattering position
             I - intensity
         """
-        # initialize intenisity and q
-        I = []
-        q = []
-        # loop scattering vectors
-        for k in k_list/lat_param:
-            qk = np.sqrt(k[0]**2+k[1]**2+k[2]**2)
-            Ikc = []
-            Iks =[]
-            # loop faces of cubic surface
-            for f in faces:
-                A,B,C = verts[f[0]]*lat_param, verts[f[1]]*lat_param, verts[f[2]]*lat_param
-                vecAB = B-A
-                vecAC = C-A
-                # face area
-                area = 0.5*np.linalg.norm(np.cross(vecAB, vecAC))
-                # face unit normal
+        I = np.zeros(len(k_list))
+        q = np.zeros(len(k_list))
+
+        for i, k in enumerate(k_list):
+            k_scaled = k / lat_param
+            q[i] = np.linalg.norm(k_scaled)
+
+            Ikc = np.zeros(len(faces))
+            Iks = np.zeros(len(faces))
+
+            for j, f in enumerate(faces):
+                A, B, C = verts[f[0]] * lat_param, verts[f[1]] * lat_param, verts[f[2]] * lat_param
+                vecAB = B - A
+                vecAC = C - A
+                area = 0.5 * np.linalg.norm(np.cross(vecAB, vecAC))
+                # n = np.cross(vecAB, vecAC) / np.linalg.norm(vecAB) / np.linalg.norm(vecAC) - np.dot(vecAB, vecAC)**2
                 n = np.cross(vecAB, vecAC)/np.sqrt(np.linalg.norm(vecAB)**2*np.linalg.norm(vecAC)**2-np.linalg.norm(np.dot(vecAB,vecAC))**2)
-                mpv = np.array([(A[0]+B[0]+C[0])/3,(A[1]+B[1]+C[1])/3,(A[2]+B[2]+C[2])/3])
-                Ikc.append(area*np.cos(2*np.pi*np.dot(k,mpv))*np.cos(2*np.pi*np.dot(k,n*L/2))*np.exp(-2*np.pi**2*sigma**2*(2*np.pi*np.dot(k,n))**2))
-                Iks.append(area*np.sin(2*np.pi*np.dot(k,mpv))*np.cos(2*np.pi*np.dot(k,n*L/2))*np.exp(-2*np.pi**2*sigma**2*(2*np.pi*np.dot(k,n))**2))
-            I.append(np.sum(Ikc)**2+np.sum(Iks)**2)
-            q.append(qk)
-        return np.array(q),np.array(I)
+                mpv = (A + B + C) / 3
+
+                # dot_product = 2 * np.pi * np.dot(k_scaled, mpv)
+                # dot_product_n = 2 * np.pi * np.dot(k_scaled, n * L / 2)
+                # exponential = np.exp(-2 * np.pi ** 2 * sigma ** 2 * dot_product_n ** 2)
+
+                dot_product = 2 * np.pi * np.dot(k_scaled, mpv)
+                dot_product_n = 2 * np.pi * np.dot(k_scaled, n * L / 2)
+                exponential = np.exp(-2 * np.pi ** 2 * sigma ** 2 * dot_product_n ** 2)
+
+                Ikc[j] = area * np.cos(dot_product) * np.cos(dot_product_n) * exponential
+                Iks[j] = area * np.sin(dot_product) * np.cos(dot_product_n) * exponential
+
+                # Ikc[j] = area*np.cos(2*np.pi*np.dot(k_scaled,mpv))*np.cos(2*np.pi*np.dot(k_scaled,n*L/2))*np.exp(-2*np.pi**2*sigma**2*(2*np.pi*np.dot(k_scaled,n))**2)
+                # Iks[j] = area*np.sin(2*np.pi*np.dot(k_scaled,mpv))*np.cos(2*np.pi*np.dot(k_scaled,n*L/2))*np.exp(-2*np.pi**2*sigma**2*(2*np.pi*np.dot(k_scaled,n))**2)
+
+            I[i] = np.sum(Ikc) ** 2 + np.sum(Iks) ** 2
+
+        return q, I
+
+
+    def generateSynthCubic0(self, params):
+        x = 3
+        y = 3
+        z = 3
+        n = x*y*z
+        store_it_q = np.zeros((n, 16))
+        store_it_I = np.zeros((n, 16))
+        print(store_it_q)
+        # print(store_it)
+        k_list = self.getScatVec()
+        k_list_len = len(k_list)
+
+        count = 0
+        for lat_param in tqdm(np.linspace(params[0,0], params[0,1], x)):
+            verts, faces, _, _ = self.getSurface(4,lat_param)
+            for L in np.linspace(params[1,0], params[1,1], y):
+                for sigma in np.linspace(params[2,0], params[2,1], z):
+                    qI_pair = self.getIntensity(verts, faces, k_list, lat_param, L, sigma)
+                    store_it_q[count], store_it_I[count] = qI_pair[0], qI_pair[1]
+                    count += 1
+                    
+
+        return store_it_q, store_it_I
+    
 
     def generateSynthCubic(self, params):
-        store_it = []
+        x = 3
+        y = 3
+        z = 3
+        n = x * y * z
+
         k_list = self.getScatVec()
-        pbar = tqdm(total=11**4+1)
+        k_list_len = len(k_list)
+
+        store_it_q = np.zeros((n, k_list_len))
+        store_it_I = np.zeros((n, k_list_len))
+
+        lat_params = np.linspace(params[0, 0], params[0, 1], x)
+        L_values = np.linspace(params[1, 0], params[1, 1], y)
+        sigma_values = np.linspace(params[2, 0], params[2, 1], z)
+
         count = 0
-        for lat_param in np.linspace(params[0,0], params[0,1],22):
-            verts, faces, _, _ = self.getSurface(12,lat_param)
-            for L in np.linspace(params[1,0], params[1,1], 22):
-                for sigma in np.linspace(params[2,0], params[2,1], 22):
-                    count +=1
-                    pbar.update()
-                    q,I = self.getIntensity(verts, faces, k_list, lat_param, L, sigma)
-                    store_it.append(np.array([q, I]))
+        for lat_param in tqdm(lat_params):
+            verts, faces, _, _ = self.getSurface(4, lat_param)
 
-        pbar.close()
-        print(f'generated {count} of {11**4} possible')
+            for L in L_values:
+                for sigma in sigma_values:
+                    qI_pairs = self.getIntensity(verts, faces, k_list, lat_param, L, sigma)
+                    store_it_q[count], store_it_I[count] = qI_pairs[0], qI_pairs[1]
+                    count += 1
 
-        return np.array(store_it)
+        return store_it_q, store_it_I
+
+    
