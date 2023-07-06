@@ -13,7 +13,9 @@ import umap
 
 
 def load_data(phase):
-    data_3d = np.load(f'Synthetic_Processed/{phase.lower()}.npy')[:,:,:,0]
+    data = np.load(f'Synthetic_Processed/P_{phase.lower()}.npy')
+    print(data.shape)
+    data_3d = data[:,:,:,0]
     data_1d = []
     for i in data_3d:
         # get matrix diagonal
@@ -22,7 +24,8 @@ def load_data(phase):
     data_1d = np.array(data_1d)
     q = np.load(f'Synthetic_Processed/{phase.lower()}_q.npy')
     # load experimental data
-    exp_data = np.load(f'Experimental_data/{phase.lower()}.npy')
+    # exp_data = np.load(f'Experimental_data/{phase.lower()}.npy')
+    exp_data = None
     return data_1d, data_3d, exp_data, q
 
 def plot_saxs(pattern,q):
@@ -80,13 +83,14 @@ def plot_saxs_featuremap(data,q):
     plt.show()
 
 if __name__ == '__main__':
-    Phase = 'lamellar'
-    d1, d3, exp_data, q = load_data('lamellar')
-    plot_saxs_umap(d1,exp_data)
-    plot_saxs_tsne(d1,exp_data)
-    plot_saxs_pca(d1,exp_data)
-    plot_saxs(d1[0],q)
-    plot_saxs_featuremap(d3[0],q)
+    Phase = 'cubic'
+    d1, d3, exp_data, q = load_data('cubic')
+    # plot_saxs_umap(d1,exp_data)
+    # plot_saxs_tsne(d1,exp_data)
+    # plot_saxs_pca(d1,exp_data)
+    for x in range(27):
+        plot_saxs(d1[x],q)
+    # plot_saxs_featuremap(d3[0],q)
     
     
     
