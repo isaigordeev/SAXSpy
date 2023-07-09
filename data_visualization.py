@@ -16,6 +16,9 @@ def load_data(phase, cubic_mesophase=None):
     assert phase == 'cubic' or phase == 'lamellar' or phase == 'hexagonal'
 
     if cubic_mesophase is not None and phase == 'cubic':
+        assert cubic_mesophase == 'Im3m' or cubic_mesophase == 'la3d' or cubic_mesophase == 'Pn3m' or \
+               cubic_mesophase == 'P' or cubic_mesophase == 'G' or cubic_mesophase == 'D'
+
         data = np.load(f'Synthetic_Processed/{cubic_mesophase}_{phase.lower()}.npy')
     else: data = np.load(f'Synthetic_Processed/{phase.lower()}.npy')
 

@@ -239,13 +239,13 @@ class CubicModel():
         self.surf = surf
 
     def getScatVec(self):
-        if self.surf == 'Im3m':
+        if self.surf == 'Im3m' or self.surf == 'P':
             k_list = primitiveScatteringVectors()
             print('primitive scattering vectors')
-        elif self.surf == 'la3d':
+        elif self.surf == 'la3d' or self.surf == 'G':
             k_list = gyroidScatteringVectors()
             print('Gyroid scattering vectors')
-        elif self.surf == 'Pn3m':
+        elif self.surf == 'Pn3m' or self.surf == 'D':
             k_list = diamondScatteringVectors()
             print('Diamond scattering vectors')
         return k_list
@@ -257,14 +257,14 @@ class CubicModel():
             steps - increment in mgrid mesh
             lat_param - lattice parameter
         """
-        if self.surf == 'Im3m':
+        if self.surf == 'Im3m' or self.surf == 'P':
             x, y, z = np.pi*np.mgrid[-1:1:steps*1j, -1:1:steps*1j, -1:1:steps*1j] * 1
             vol = schwarz_p(x,y,z)
-        elif self.surf == 'Pn3m':
+        elif self.surf == 'Pn3m' or self.surf == 'D':
             # must be divided by 2 in order to obey the reflection condition
             x, y, z = np.pi*np.mgrid[-1:1:steps*1j, -1:1:steps*1j, -1:1:steps*1j] * 0.5
             vol = schwarz_d(x,y,z)
-        elif self.surf == 'la3d':
+        elif self.surf == 'la3d' or self.surf == 'G':
             # must be divided by 2 in order to obey the reflection condition
             x, y, z = np.pi*np.mgrid[-1:1:steps*1j, -1:1:steps*1j, -1:1:steps*1j] * 1
             vol = gyroid(x,y,z)

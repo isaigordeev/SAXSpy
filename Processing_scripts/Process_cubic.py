@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     for raw_data in ['../Synthetic_raw/Im3m_cubic.npy','../Synthetic_raw/la3d_cubic.npy','../Synthetic_raw/Pn3m_cubic.npy']:
         if os.path.isfile(raw_data):
-            if 'Im3m' in raw_data:
+            if 'Im3m' in raw_data or 'P' in raw_data:
                 # process Im3m
                 rawdata = np.load(raw_data)
                 rawdat = [i for i in rawdata]
@@ -138,7 +138,7 @@ if __name__ == '__main__':
                 processed_p = parallel_process(rawdat, Process_cubic)
                 processed_p = np.array(processed_p)
                 np.save('../Synthetic_Processed/Im3m_cubic.npy', processed_p)
-            if 'la3d' in raw_data:
+            if 'la3d' in raw_data or 'G' in raw_data:
                 # process la3d
                 rawdata = np.load(raw_data)
                 rawdat = [i for i in rawdata]
@@ -146,8 +146,8 @@ if __name__ == '__main__':
                 processed_g = parallel_process(rawdat, Process_cubic)
                 processed_g = np.array(processed_g)
                 np.save('../Synthetic_Processed/la3d_cubic.npy', processed_g)
-            if 'Pn3m' in raw_data:
-                # process d
+            if 'Pn3m' in raw_data or 'D' in raw_data:
+                # process Pn3m
                 rawdata = np.load(raw_data)
                 rawdat = [i for i in rawdata]
                 print('Processing Pn3m cubic...')
