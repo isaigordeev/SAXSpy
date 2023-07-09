@@ -12,8 +12,13 @@ import saxspy
 import umap
 
 
-def load_data(phase):
-    data = np.load(f'Synthetic_Processed/P_{phase.lower()}.npy')
+def load_data(phase, cubic_mesophase=None):
+    assert phase == 'cubic' or phase == 'lamellar' or phase == 'hexagonal'
+
+    if cubic_mesophase is not None and phase == 'cubic':
+        data = np.load(f'Synthetic_Processed/{cubic_mesophase}_{phase.lower()}.npy')
+    else: data = np.load(f'Synthetic_Processed/{phase.lower()}.npy')
+
     print(data.shape)
     data_3d = data[:,:,:,0]
     data_1d = []
@@ -82,15 +87,7 @@ def plot_saxs_featuremap(data,q):
     plt.title('Feature map of SAXS data')
     plt.show()
 
-if __name__ == '__main__':
-    Phase = 'cubic'
-    d1, d3, exp_data, q = load_data('cubic')
-    # plot_saxs_umap(d1,exp_data)
-    # plot_saxs_tsne(d1,exp_data)
-    # plot_saxs_pca(d1,exp_data)
-    for x in range(27):
-        plot_saxs(d1[x],q)
-    # plot_saxs_featuremap(d3[0],q)
+
     
     
     

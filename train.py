@@ -29,9 +29,9 @@ LR = 0.0015
 
 lam = np.load('Synthetic_Processed/lamellar.npy')
 hex = np.load('Synthetic_Processed/hexagonal.npy')
-p = np.load('Synthetic_Processed/P_cubic.npy')
-g = np.load('Synthetic_Processed/G_cubic.npy')
-d = np.load('Synthetic_Processed/D_cubic.npy')
+p = np.load('Synthetic_Processed/Im3m_cubic.npy')
+g = np.load('Synthetic_Processed/la3d_cubic.npy')
+d = np.load('Synthetic_Processed/Pn3m_cubic.npy')
 
 x = np.vstack((lam,hex,p,g,d))
 y = np.hstack(([0]*len(lam), [1]*len(hex), [2]*len(p), [3]*len(g), [4]*len(d)))
@@ -48,6 +48,7 @@ def build_model(dim=200, ef=0):
     x = base(inp1)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dense(1,activation='sigmoid')(x)
+
     model = tf.keras.Model(inputs=inp1,outputs=x)
     opt = tf.keras.optimizers.Adam(learning_rate=0.001)
     loss = tf.keras.losses.BinaryCrossentropy(label_smoothing=0.05) 

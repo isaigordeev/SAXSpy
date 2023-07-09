@@ -239,13 +239,13 @@ class CubicModel():
         self.surf = surf
 
     def getScatVec(self):
-        if self.surf == 'P':
+        if self.surf == 'Im3m':
             k_list = primitiveScatteringVectors()
             print('primitive scattering vectors')
-        elif self.surf == 'G':
+        elif self.surf == 'la3d':
             k_list = gyroidScatteringVectors()
             print('Gyroid scattering vectors')
-        elif self.surf == 'D':
+        elif self.surf == 'Pn3m':
             k_list = diamondScatteringVectors()
             print('Diamond scattering vectors')
         return k_list
@@ -257,14 +257,14 @@ class CubicModel():
             steps - increment in mgrid mesh
             lat_param - lattice parameter
         """
-        if self.surf == 'P':
+        if self.surf == 'Im3m':
             x, y, z = np.pi*np.mgrid[-1:1:steps*1j, -1:1:steps*1j, -1:1:steps*1j] * 1
             vol = schwarz_p(x,y,z)
-        elif self.surf == 'D':
+        elif self.surf == 'Pn3m':
             # must be divided by 2 in order to obey the reflection condition
             x, y, z = np.pi*np.mgrid[-1:1:steps*1j, -1:1:steps*1j, -1:1:steps*1j] * 0.5
             vol = schwarz_d(x,y,z)
-        elif self.surf == 'G':
+        elif self.surf == 'la3d':
             # must be divided by 2 in order to obey the reflection condition
             x, y, z = np.pi*np.mgrid[-1:1:steps*1j, -1:1:steps*1j, -1:1:steps*1j] * 1
             vol = gyroid(x,y,z)
@@ -345,15 +345,24 @@ class CubicModel():
             q.append(qk)
         return np.array(q),np.array(I)
 
-    def generateSynthCubic(self, params):
+    def generateSynthCubic(self, params, lattice_params_num=2, lengths_num=2, sigmas_num=2):
         store_it = []
         k_list = self.getScatVec()
         pbar = tqdm(total=11**4+1)
         count = 0
-        for lat_param in np.linspace(params[0,0], params[0,1],27):
+
+        lat_params = np.linspace(params[0,0], params[0,1],lattice_params_num)
+        lengths = np.linspace(params[1,0], params[1,1], lengths_num)
+        sigmas = np.linspace(params[2,0], params[2,1], sigmas_num)
+
+        print(lat_params)
+        print(lengths)
+        print(sigmas)
+
+        for lat_param in lat_params:
             verts, faces, _, _ = self.getSurface(12,lat_param)
-            for L in np.linspace(params[1,0], params[1,1], 1):
-                for sigma in np.linspace(params[2,0], params[2,1], 1):
+            for L in lengths:
+                for sigma in sigmas:
                     count +=1
                     pbar.update()
                     q,I = self.getIntensity(verts, faces, k_list, lat_param, L, sigma)

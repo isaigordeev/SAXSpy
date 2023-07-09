@@ -128,30 +128,30 @@ def Process_cubic(data):
 
 if __name__ == '__main__':
 
-    for raw_data in ['../Synthetic_raw/P_cubic.npy','../Synthetic_raw/G_cubic.npy','../Synthetic_raw/D_cubic.npy']:
+    for raw_data in ['../Synthetic_raw/Im3m_cubic.npy','../Synthetic_raw/la3d_cubic.npy','../Synthetic_raw/Pn3m_cubic.npy']:
         if os.path.isfile(raw_data):
-            if 'P' in raw_data:
-                # process p
+            if 'Im3m' in raw_data:
+                # process Im3m
                 rawdata = np.load(raw_data)
                 rawdat = [i for i in rawdata]
-                print('Processing P cubic...')
+                print('Processing Im3m cubic...')
                 processed_p = parallel_process(rawdat, Process_cubic)
                 processed_p = np.array(processed_p)
-                np.save('../Synthetic_Processed/P_cubic.npy', processed_p)
-            if 'G' in raw_data:
-                # process g
+                np.save('../Synthetic_Processed/Im3m_cubic.npy', processed_p)
+            if 'la3d' in raw_data:
+                # process la3d
                 rawdata = np.load(raw_data)
                 rawdat = [i for i in rawdata]
-                print('Processing G cubic...')
+                print('Processing la3d cubic...')
                 processed_g = parallel_process(rawdat, Process_cubic)
                 processed_g = np.array(processed_g)
-                np.save('../Synthetic_Processed/G_cubic.npy', processed_g)
-            if 'D' in raw_data:
+                np.save('../Synthetic_Processed/la3d_cubic.npy', processed_g)
+            if 'Pn3m' in raw_data:
                 # process d
                 rawdata = np.load(raw_data)
                 rawdat = [i for i in rawdata]
-                print('Processing D cubic...')
+                print('Processing Pn3m cubic...')
                 processed_d = parallel_process(rawdat, Process_cubic)
                 processed_d = np.array(processed_d)
-                np.save('../Synthetic_Processed/D_cubic.npy', processed_d)
+                np.save('../Synthetic_Processed/Pn3m_cubic.npy', processed_d)
             np.save('../Synthetic_Processed/cubic_q.npy', np.linspace(0.01,0.43,200))
