@@ -3,12 +3,13 @@ import random
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from scipy.interpolate import CubicSpline
 from tqdm import tqdm
 from scipy.special import wofz
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def parallel_process(array, function, n_jobs=4, use_kwargs=False, front_num=3):
     """
@@ -55,10 +56,6 @@ def parallel_process(array, function, n_jobs=4, use_kwargs=False, front_num=3):
         except Exception as e:
             out.append(e)
     return front + out
-
-
-# global blanks
-blanks = np.load('blanks_raw.npy')
 
 
 # Norm functions
@@ -115,12 +112,16 @@ def debyeWaller(q, decay_parameter):
 dwf = debyeWaller
 
 
+blanks = np.load(os.path.join(os.path.dirname(__file__), 'blanks_raw.npy'))
+
+
 # Function for generating DWF / Voigts / Lorenztians and Interpolating data in q2 range
+
 def Process_cubic(data):
     random_blank = random.randint(0, 169)
     blanky = blanks[random_blank]
     q = np.linspace(0, 0.452, 1566)
-    q2 = np.linspace(0.01, 0.43, 200)
+    q2 = np.linspace(0.001, 0.2, 500)  # CHANGE DIM
     random_voigt_gaussalpha = random.uniform(0.0001, 0.001)
     random_voigt_lorenzgamma = random.uniform(0.0001, 0.005)
     dw_param = random.uniform(0.005, 0.02)
@@ -142,34 +143,65 @@ def Process_cubic(data):
     I_data = np.array(I_mat)
     return I_data
 
+class Processing:
+    def __init__(self, custom_dataraw_folder=None):
+        self.custom_folder = custom_dataraw_folder
+        filepath = os.path.dirname(__file__)
+        self.blanks = np.load(os.path.join(filepath, 'blanks_raw.npy'))
 
-if __name__ == '__main__':
+        if custom_dataraw_folder is None:
+            self.save_path_folder = os.path.join(filepath, 'Synthetic_Processed')
+            self.load_path_folder = os.path.join(filepath, 'Synthetic_raw')
 
-    for raw_data in ['Synthetic_raw/Im3m_cubic.npy', 'Synthetic_raw/la3d_cubic.npy',
-                     'Synthetic_raw/Pn3m_cubic.npy']:
-        if os.path.isfile(raw_data):
-            if 'Im3m' in raw_data or 'P' in raw_data:
-                # process Im3m
-                rawdata = np.load(raw_data)
-                rawdat = [i for i in rawdata]
-                print('Processing Im3m cubic...')
-                processed_p = parallel_process(rawdat, Process_cubic)
-                processed_p = np.array(processed_p)
-                np.save('Synthetic_Processed/Im3m_cubic.npy', processed_p)
-            if 'la3d' in raw_data or 'G' in raw_data:
-                # process la3d
-                rawdata = np.load(raw_data)
-                rawdat = [i for i in rawdata]
-                print('Processing la3d cubic...')
-                processed_g = parallel_process(rawdat, Process_cubic)
-                processed_g = np.array(processed_g)
-                np.save('Synthetic_Processed/la3d_cubic.npy', processed_g)
-            if 'Pn3m' in raw_data or 'D' in raw_data:
-                # process Pn3m
-                rawdata = np.load(raw_data)
-                rawdat = [i for i in rawdata]
-                print('Processing Pn3m cubic...')
-                processed_d = parallel_process(rawdat, Process_cubic)
-                processed_d = np.array(processed_d)
-                np.save('Synthetic_Processed/Pn3m_cubic.npy', processed_d)
-            np.save('Synthetic_Processed/cubic_q.npy', np.linspace(0.01, 0.43, 200))
+            print(self.save_path_folder)
+            # print(self.blanks)
+            print(self.load_path_folder)
+        else:
+            self.load_path_folder = os.path.join(os.getcwd(), self.custom_folder)
+            self.save_path_folder = os.path.join(self.load_path_folder, 'Synthetic_Processed')
+
+            if not os.path.exists(self.save_path_folder):
+                os.mkdir(self.save_path_folder)
+
+            print(self.save_path_folder)
+            # print(self.blanks)
+            print(self.load_path_folder)
+
+        self.paths_generator = self.get_filenames_without_ext(self.load_path_folder)
+
+    def get_filenames_without_ext(self, folder_path):
+        for filename in os.listdir(folder_path):
+            if os.path.isfile(os.path.join(folder_path, filename)):
+                name, extension = os.path.splitext(filename)
+                if (name != '.DS_Store') and (name != 'README'):
+                    yield name
+
+    def process(self):
+
+        if self.paths_generator is not None:
+            for raw_data_name in self.paths_generator:
+                print(raw_data_name)
+                raw_data_name_extensioned = '{}.npy'.format(raw_data_name)
+                load_path = os.path.join(self.load_path_folder, raw_data_name_extensioned)
+
+                if 'cubic' in raw_data_name:
+                    rawdata = np.load(load_path)
+                    rawdat = [i for i in rawdata]
+                    print('Processing {} cubic...'.format(raw_data_name))
+                    processed_cubic = parallel_process(rawdat, Process_cubic)
+                    processed_cubic = np.array(processed_cubic, dtype=np.float32)
+
+                    processed_data_name_extensioned = '{}_cubic_processed.npy'.format(raw_data_name_extensioned[:4])
+                    print(processed_data_name_extensioned)
+
+                    save_path = os.path.join(self.save_path_folder, processed_data_name_extensioned)
+                    print(save_path)
+                    # np.savez_compressed(save_path, processed_cubic)
+                    np.save(save_path, processed_cubic)
+                if 'lamellar' in raw_data_name:
+                    pass
+                if 'hexagonal' in raw_data_name:
+                    pass
+
+                save_path = os.path.join(self.save_path_folder, 'cubic_q.npy')
+                np.save(save_path, np.linspace(0.001, 0.2, 500))

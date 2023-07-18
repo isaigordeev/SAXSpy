@@ -1,3 +1,4 @@
+import os.path
 from cProfile import label
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,24 +6,29 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import pickle
 import random
-from saxspy import debyeWaller as dwf
+
+from .generation_settings import core_path
+from .saxspy import debyeWaller as dwf
 from scipy.interpolate import CubicSpline
 from tqdm import tqdm
-import saxspy
-import umap
+# import umap
 
 
-def load_data(phase, cubic_mesophase=None):
+def load_data(phase, cubic_mesophase=None, load_path=os.path.join(os.path.dirname(__file__), 'Synthetic_Processed/')):
+    print(phase)
     assert phase == 'cubic' or phase == 'lamellar' or phase == 'hexagonal'
 
     if cubic_mesophase is not None and phase == 'cubic':
         assert cubic_mesophase == 'Im3m' or cubic_mesophase == 'la3d' or cubic_mesophase == 'Pn3m' or \
                cubic_mesophase == 'P' or cubic_mesophase == 'G' or cubic_mesophase == 'D'
 
-        data = np.load(f'Synthetic_Processed/{cubic_mesophase}_{phase.lower()}.npy')
-    else: data = np.load(f'Synthetic_Processed/{phase.lower()}.npy')
+        load_data_path = os.path.join(load_path, '{}_cubic_processed.npy'.format(cubic_mesophase))
+        print(load_data_path)
+        data = np.load(load_data_path)
+    else:
+        load_path = '{}Synthetic_Processed/{}_processed.npy'.format(core_path, phase.lower())
+        data = np.load(load_path)
 
-    print(data.shape)
     data_3d = data[:,:,:,0]
     data_1d = []
     for i in data_3d:
@@ -30,17 +36,30 @@ def load_data(phase, cubic_mesophase=None):
         data = np.sqrt(np.diag(i))
         data_1d.append(data)
     data_1d = np.array(data_1d)
-    q = np.load(f'Synthetic_Processed/{phase.lower()}_q.npy')
+
+    load_path_q = os.path.join(load_path, '{}_q.npy'.format(phase))
+    q = np.load(load_path_q)
     # load experimental data
     # exp_data = np.load(f'Experimental_data/{phase.lower()}.npy')
     exp_data = None
-    return data_1d, data_3d, exp_data, q
+    return q, data_1d, data_3d, exp_data
 
-def plot_saxs(pattern,q):
+def plot_saxs(q, pattern):
     plt.figure()
     plt.plot(q,pattern)
     plt.xlabel('q')
     plt.ylabel('Intensity')
+    plt.show()
+
+def plot_saxs_featuremap(data,q):
+    plt.figure()
+    plt.imshow(data,cmap='hot')
+    plt.xlabel('q')
+    plt.ylabel('q')
+    # change x and y labels to q
+    plt.xticks(np.arange(0,data.shape[0],50), ["{:.2f}".format(i) for i in q[::50]])
+    plt.yticks(np.arange(0,data.shape[0],50), ["{:.2f}".format(i) for i in q[::50]])
+    plt.title('Feature map of SAXS data')
     plt.show()
 
 def plot_saxs_tsne(data_synth,data_exp):
@@ -79,16 +98,7 @@ def plot_saxs_umap(data_synth,data_exp):
     plt.legend()
     plt.show()
 
-def plot_saxs_featuremap(data,q):
-    plt.figure()
-    plt.imshow(data,cmap='hot')
-    plt.xlabel('q')
-    plt.ylabel('q')
-    # change x and y labels to q
-    plt.xticks(np.arange(0,data.shape[0],50), ["{:.2f}".format(i) for i in q[::50]])
-    plt.yticks(np.arange(0,data.shape[0],50), ["{:.2f}".format(i) for i in q[::50]])
-    plt.title('Feature map of SAXS data')
-    plt.show()
+
 
 
     
